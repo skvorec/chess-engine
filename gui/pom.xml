@@ -1,0 +1,86 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.chess-diagram</groupId>
+        <artifactId>aggregator</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+	
+    <artifactId>fx-gui</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>fx-gui</name>
+	
+        
+    <properties>        
+        <app.output>${project.build.directory}/ch-pn-gui</app.output>
+        <app.output.dependency>${app.output}/dependency</app.output.dependency>
+    </properties>
+        
+    <build>
+        <plugins>            
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <outputDirectory>${app.output}</outputDirectory>
+                    <archive>
+                        <manifest>                                                        
+                            <Main-Class>org.chessdiagram.gui.DeskFXApplication</Main-Class>
+                        </manifest>
+                        <!-- hack: maven does not add system scope dependencies into classpath -->
+                        <manifestEntries>
+                            <Class-Path>dependency/engine-api-1.0-SNAPSHOT.jar dependency/engine-impl-1.0-SNAPSHOT.jar dependency/commons-lang-2.3.jar dependency/jfxrt.jar</Class-Path>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>    
+                  
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <configuration>
+                    <outputDirectory>${app.output.dependency}</outputDirectory>
+                    <excludeScope>provided</excludeScope>
+                    <includeScope>runtime</includeScope>
+                    <includeScope>compile</includeScope>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+	
+
+	
+
+    <dependencies>       
+        <dependency>
+            <groupId>javafx</groupId>
+            <artifactId>javafx</artifactId>
+            <version>2.2</version>
+            <scope>system</scope>
+            <systemPath>${java.home}/lib/jfxrt.jar</systemPath>
+        </dependency>        
+        <dependency>
+            <groupId>org.chess-diagram</groupId>
+            <artifactId>engine-api</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.chess-diagram</groupId>
+            <artifactId>engine-impl</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+</project>
