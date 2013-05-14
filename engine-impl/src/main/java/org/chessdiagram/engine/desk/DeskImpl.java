@@ -13,6 +13,7 @@ import static org.chessdiagram.engine.desk.DeskFactory.EMPTY_CELL_CHAR;
 public class DeskImpl implements Desk
 {
     private final SquareHelper squareHelper = new SquareHelper();
+    private List<RollBackEntry> rollBackEntries = new ArrayList<RollBackEntry>();
     //desk
     //in java coding: row[0] is the top row
     private final char[][] desk;
@@ -37,22 +38,10 @@ public class DeskImpl implements Desk
         if (!ArrayUtils.contains(AVAILABLE_CHARS, piece) && piece != EMPTY_CELL_CHAR) {
             throw new EngineException("piece is incorrect: " + piece);
         }
-        desk[squareHelper.getRowNum(square)][squareHelper.getColumnNum(square)] = piece;
-    }
-
-
-    @Override
-    public List<String> findPieceSquares(char piece)
-    {
-        List<String> result = new ArrayList<String>();
-        DeskIterator deskIterator = deskIterator("A1");
-        while (deskIterator.hasNext()) {
-            char next = deskIterator.next();
-            if (next == piece) {
-                result.add(deskIterator.currentPosition());
-            }
-        }
-        return result;
+        final int rowNum = squareHelper.getRowNum(square);
+        final int columnNum = squareHelper.getColumnNum(square);
+        rollBackEntries.add(new RollBackEntry(rowNum, columnNum, desk[rowNum][columnNum]));
+        desk[rowNum][columnNum] = piece;
     }
 
 
@@ -119,7 +108,39 @@ public class DeskImpl implements Desk
         return new DeskImpl(copiedDesk);
     }
 
-    private class DeskIteratorImpl implements DeskIterator
+
+    @Override
+    public void rollBack()
+    {
+        for (RollBackEntry entry : rollBackEntries) {
+            desk[entry.rollBackRow][entry.rollBackCol] = entry.rollBackPiece;
+        }
+        rollBackEntries = new ArrayList<RollBackEntry>();
+    }
+
+
+    @Override
+    public void cleanRollBackCache()
+    {
+        rollBackEntries = new ArrayList<RollBackEntry>();
+    }
+
+    private static class RollBackEntry
+    {
+        private final int rollBackRow;
+        private final int rollBackCol;
+        private final char rollBackPiece;
+
+
+        public RollBackEntry(int rollBackRow, int rollBackCol, char rollBackPiece)
+        {
+            this.rollBackRow = rollBackRow;
+            this.rollBackCol = rollBackCol;
+            this.rollBackPiece = rollBackPiece;
+        }
+    }
+
+    protected class DeskIteratorImpl implements DeskIterator
     {
         private int rowNumCursor;
         private int colNumCursor;
@@ -202,10 +223,39 @@ public class DeskImpl implements Desk
         }
 
 
-        private String toSquare(int rowNum, int colNum)
+        protected String toSquare(int rowNum, int colNum)
         {
-            char c = (char) (65 + colNum);
-            return String.valueOf(c) + String.valueOf(8 - rowNum);
+            char colChar = (char) (65 + colNum);
+            char rowChar;
+            switch (rowNum) {
+                case 0:
+                    rowChar = '8';
+                    break;
+                case 1:
+                    rowChar = '7';
+                    break;
+                case 2:
+                    rowChar = '6';
+                    break;
+                case 3:
+                    rowChar = '5';
+                    break;
+                case 4:
+                    rowChar = '4';
+                    break;
+                case 5:
+                    rowChar = '3';
+                    break;
+                case 6:
+                    rowChar = '2';
+                    break;
+                case 7:
+                    rowChar = '1';
+                    break;
+                default:
+                    throw new EngineException("invalid rowNum: " + rowNum);
+            }
+            return new String(new char[]{colChar, rowChar});
         }
     }
 }

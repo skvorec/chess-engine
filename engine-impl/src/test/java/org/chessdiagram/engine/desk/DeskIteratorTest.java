@@ -1,5 +1,6 @@
 package org.chessdiagram.engine.desk;
 
+import org.chessdiagram.engine.desk.DeskImpl.DeskIteratorImpl;
 import static org.chessdiagram.engine.desk.MoveVectorImpl.*;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -62,5 +63,14 @@ public class DeskIteratorTest
         DeskIterator deskIterator = desk.deskIterator("B3");
         Assert.assertEquals(deskIterator.getPieceAt(SOUTH), 'N');
         Assert.assertEquals(deskIterator.getPieceAt(NORTH.plus(NORTH).plus(NORTH).plus(EAST)), 'p');
+    }
+
+
+    @Test
+    public void toSquare()
+    {
+        DeskImpl desk = dataHelper.getConfiguredDesk();
+        DeskIteratorImpl deskIterator = (DeskIteratorImpl) desk.deskIterator("A1");
+        Assert.assertEquals(deskIterator.toSquare(0, 1), "B8");
     }
 }

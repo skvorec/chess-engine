@@ -1,6 +1,6 @@
 package org.chessdiagram.engine;
 
-import java.util.List;
+import java.util.Map;
 import org.chessdiagram.engine.desk.Desk;
 
 /**
@@ -20,7 +20,7 @@ public interface Position
     boolean makeMove(Move move);
 
 
-    List<Move> getLegalMoves();
+    Map<Move, Position> getLegalMovesHash();
 
 
     boolean getActivePlayer();
@@ -29,5 +29,5 @@ public interface Position
     Position copy();
 
 
-    boolean isCheck();
+    boolean isCheck(boolean whoIsUnderCheck);
 }

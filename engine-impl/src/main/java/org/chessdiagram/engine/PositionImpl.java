@@ -2,7 +2,9 @@ package org.chessdiagram.engine;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang.BooleanUtils;
 import static org.chessdiagram.engine.PositionFactory.EMPTY_CELL_CHAR;
 import org.chessdiagram.engine.desk.Desk;
@@ -67,20 +69,23 @@ public class PositionImpl implements Position
 
 
     @Override
-    public List<Move> getLegalMoves()
+    public Map<Move, Position> getLegalMovesHash()
     {
-        List<Move> result = new ArrayList<Move>();
+        Map<Move, Position> result = new HashMap<>();
         DeskIterator deskIterator = desk.deskIterator("A1");
         while (deskIterator.hasNext()) {
             deskIterator.next();
             List<Move> canMoveFrom = canMoveFrom(deskIterator.currentPosition());
             for (Move move : canMoveFrom) {
-                toMemento();
-                preMove(move);
-                if (!isCheck()) {
-                    result.add(move);
+                PositionImpl copy = (PositionImpl) this.copy();
+                //we need not do toMemento(), copied position is not used if it is unlegal
+                //copy.toMemento();
+                copy.preMove(move);
+                if (!copy.isCheck(!copy.getActivePlayer())) {
+                    result.put(move, copy);
                 }
-                fromMemento();
+                //we need not do from memento, copied position is not used more
+                //fromMemento();
             }
         }
         return result;
@@ -131,6 +136,13 @@ public class PositionImpl implements Position
     }
 
 
+    /**
+     * Changes this position if move is legal, i.e. if piece moves according to the rules and player have not check
+     * after the move
+     *
+     * @param move
+     * @return true if move is valid and false otherwise
+     */
     @Override
     public boolean makeMove(Move move)
     {
@@ -141,33 +153,20 @@ public class PositionImpl implements Position
                 System.out.println(move.toString() + " " + color + " player cannot move " + desk.getPieceAt(initialSquare));
                 return false;
             }
-
             toMemento();
-            halfMoves++;
             preMove(move);
-            if (isCheck()) {
+            //after pre-move activePlayer is changed
+            if (isCheck(!activePlayer)) {
                 System.out.println(move.toString() + " move was not done, it is unlegal");
                 fromMemento();
                 return false;
             }
             else {
-                //increase move counter after black move
-                if (!activePlayer) {
-                    moves++;
-                }
-
-                if (halfMoves == 50) {
-                    System.out.println("Half moves == 50!");
-                }
-                //all is ok
-                activePlayer = !activePlayer;
                 memento = null;//we no need more in old state
             }
-
         }
         else {
             System.out.println("Cannot move " + move.toString());
-//            System.out.println(display());
             return false;
         }
         return true;
@@ -175,27 +174,33 @@ public class PositionImpl implements Position
 
 
     @Override
-    public boolean isCheck()
+    public boolean isCheck(boolean whoIsUnderCheck)
     {
-        char kingUnderAttack = activePlayer ? 'K' : 'k';
+        char kingUnderAttack = whoIsUnderCheck ? 'K' : 'k';
         DeskIterator deskIterator = desk.deskIterator("A1");
         while (deskIterator.hasNext()) {
             char currentPiece = deskIterator.next();
             if (currentPiece == kingUnderAttack) {
-                return isAttacked(!activePlayer, deskIterator.currentPosition());
+                return isAttacked(!whoIsUnderCheck, deskIterator.currentPosition());
             }
         }
         return false;
     }
 
 
-    //Here we do not change active player, moves, half moves but only pieces on the desk
+    /**
+     * Here we do all changes, but we do not validate here that we have not check after the move
+     *
+     * @param move
+     */
     protected void preMove(Move move)
     {
+        halfMoves++;
         String initial = move.getFrom();
         String destination = move.getDestination();
         char oldInitialPiece = desk.getPieceAt(initial);
         char destInitialPiece = desk.getPieceAt(destination);
+        //if it is capturing
         if (destInitialPiece != EMPTY_CELL_CHAR) {
             halfMoves = 0;
         }
@@ -293,6 +298,17 @@ public class PositionImpl implements Position
         if (destination.equals("H8")) {
             k = false;
         }
+
+        //increase move counter after black move
+        if (!activePlayer) {
+            moves++;
+        }
+
+        if (halfMoves == 50) {
+            System.out.println("Half moves == 50!");
+        }
+        //all is ok
+        activePlayer = !activePlayer;
     }
 
 
@@ -312,10 +328,10 @@ public class PositionImpl implements Position
     }
 
 
-    protected List<MoveImpl> canMoveAlongVector(String square, MoveVector vector)
+    protected List<Move> canMoveAlongVector(String square, MoveVector vector)
     {
         boolean initialColor = Character.isUpperCase(desk.getPieceAt(square));
-        List<MoveImpl> result = new ArrayList<MoveImpl>();
+        List<Move> result = new ArrayList<>();
         DeskIterator deskIterator = desk.deskIterator(square);
 
         while (deskIterator.hasNext(vector)) {
@@ -335,10 +351,31 @@ public class PositionImpl implements Position
     }
 
 
+    protected String attackAlongVector(String initialSquare, MoveVector vector)
+    {
+        boolean initialColor = Character.isUpperCase(desk.getPieceAt(initialSquare));
+        DeskIterator deskIterator = desk.deskIterator(initialSquare);
+        while (deskIterator.hasNext(vector)) {
+            char next = deskIterator.next(vector);
+            if (next == EMPTY_CELL_CHAR) {
+                continue;
+            }
+            if (differentColor(initialColor, Character.isUpperCase(next))) {
+                return deskIterator.currentPosition();
+            }
+            else {
+                //we encounter the same color 
+                return null;
+            }
+        }
+        return null;
+    }
+
+
     protected List<Move> canMoveKnightFrom(String ourSquare)
     {
 //        System.out.println("--Can move knight from square " + ourSquare);
-        List<Move> result = new ArrayList<Move>();
+        List<Move> result = new ArrayList<>();
 
         for (MoveVector mVector : ALL_KNIGHT_MOVES) {
             addIfEmptyOrAnotherColor(ourSquare, mVector, result);
@@ -351,7 +388,7 @@ public class PositionImpl implements Position
 
     protected List<Move> canMoveBishopFrom(String square)
     {
-        List<Move> result = new ArrayList<Move>();
+        List<Move> result = new ArrayList<>();
         result.addAll(canMoveAlongVector(square, NORTH_EAST));
         result.addAll(canMoveAlongVector(square, NORTH_WEST));
         result.addAll(canMoveAlongVector(square, SOUTH_EAST));
@@ -362,7 +399,7 @@ public class PositionImpl implements Position
 
     protected List<Move> canMoveRookFrom(String square)
     {
-        List<Move> result = new ArrayList<Move>();
+        List<Move> result = new ArrayList<>();
         result.addAll(canMoveAlongVector(square, NORTH));
         result.addAll(canMoveAlongVector(square, WEST));
         result.addAll(canMoveAlongVector(square, SOUTH));
@@ -393,6 +430,51 @@ public class PositionImpl implements Position
     }
 
 
+    protected boolean bishopAttack(String bishopPosition, String toAtack)
+    {
+        if (toAtack.equals(attackAlongVector(bishopPosition, NORTH_EAST))) {
+            return true;
+        }
+        if (toAtack.equals(attackAlongVector(bishopPosition, NORTH_WEST))) {
+            return true;
+        }
+        if (toAtack.equals(attackAlongVector(bishopPosition, SOUTH_EAST))) {
+            return true;
+        }
+        if (toAtack.equals(attackAlongVector(bishopPosition, SOUTH_WEST))) {
+            return true;
+        }
+        return false;
+    }
+
+
+    protected boolean rookAttack(String rookPosition, String toAtack)
+    {
+        if (toAtack.equals(attackAlongVector(rookPosition, NORTH))) {
+            return true;
+        }
+        if (toAtack.equals(attackAlongVector(rookPosition, SOUTH))) {
+            return true;
+        }
+        if (toAtack.equals(attackAlongVector(rookPosition, EAST))) {
+            return true;
+        }
+        if (toAtack.equals(attackAlongVector(rookPosition, WEST))) {
+            return true;
+        }
+        return false;
+    }
+
+
+    protected boolean queenAttack(String queenPosition, String toAtack)
+    {
+        if (bishopAttack(queenPosition, toAtack) || rookAttack(queenPosition, toAtack)) {
+            return true;
+        }
+        return false;
+    }
+
+
     protected boolean isAttacked(boolean byColor, String square)
     {
         DeskIterator deskIterator = desk.deskIterator("A1");
@@ -404,28 +486,28 @@ public class PositionImpl implements Position
                     case 'n':
                     case 'N':
                         if (movesContainsDestination(canMoveKnightFrom(currentPosition), square)) {
-//                            System.out.println("by knight " + currentPosition);
+//                            System.out.println("by knight");
                             return true;
                         }
                         break;
                     case 'b':
                     case 'B':
-                        if (movesContainsDestination(canMoveBishopFrom(currentPosition), square)) {
-//                            System.out.println("by bishop " + currentPosition);
+                        if (bishopAttack(currentPosition, square)) {
+//                            System.out.println("by bishop");
                             return true;
                         }
                         break;
                     case 'r':
                     case 'R':
-                        if (movesContainsDestination(canMoveRookFrom(currentPosition), square)) {
-//                            System.out.println("by rook " + currentPosition);
+                        if (rookAttack(currentPosition, square)) {
+//                            System.out.println("by rook");
                             return true;
                         }
                         break;
                     case 'q':
                     case 'Q':
-                        if (movesContainsDestination(canMoveQueenFrom(currentPosition), square)) {
-//                            System.out.println("by queen " + currentPosition);
+                        if (queenAttack(currentPosition, square)) {
+//                            System.out.println("by queen");
                             return true;
                         }
                         break;
@@ -436,7 +518,6 @@ public class PositionImpl implements Position
                                 && deskIterator.getSquareAt(basicMoveVector.plus(EAST)).equals(square))
                                 || (deskIterator.hasNext(basicMoveVector.plus(WEST))
                                 && deskIterator.getSquareAt(basicMoveVector.plus(WEST)).equals(square))) {
-//                            System.out.println("by pawn " + currentPosition);
                             return true;
                         }
                         break;
@@ -444,7 +525,6 @@ public class PositionImpl implements Position
                     case 'K':
                         for (MoveVector mVector : ALL_KING_MOVES) {
                             if (deskIterator.hasNext(mVector) && square.equals(deskIterator.getSquareAt(mVector))) {
-//                                System.out.println("by king " + currentPosition);
                                 return true;
                             }
                         }
@@ -459,7 +539,7 @@ public class PositionImpl implements Position
 
     protected List<Move> canMoveFrom(String square)
     {
-        List<Move> result = new ArrayList<Move>();
+        List<Move> result = new ArrayList<>();
 
         //assert initial coordinates are inside desk
         char piece = desk.getPieceAt(square);
@@ -499,7 +579,7 @@ public class PositionImpl implements Position
                         result.add(new MoveImpl(square, destination));
                     }
                 }
-                if (deskIterator.currentPosition().endsWith(String.valueOf(initialRowNumber))
+                if (square.endsWith(String.valueOf(initialRowNumber))
                         && deskIterator.getPieceAt(basicMoveVector) == EMPTY_CELL_CHAR
                         && deskIterator.getPieceAt(basicMoveVector.plus(basicMoveVector)) == EMPTY_CELL_CHAR) {
                     result.add(new MoveImpl(square, deskIterator.getSquareAt(basicMoveVector.plus(basicMoveVector))));
@@ -619,7 +699,6 @@ public class PositionImpl implements Position
         public boolean k;
         public boolean q;
         public String possibleEnPassantField;
-        public Desk desk;
         public int halfMoves;
         public int moves;
     }
@@ -637,7 +716,8 @@ public class PositionImpl implements Position
         memento.k = this.k;
         memento.q = this.q;
         memento.possibleEnPassantField = this.possibleEnPassantField;
-        memento.desk = this.desk.copy();
+        //desk is instance of outter class
+        desk.cleanRollBackCache();
         memento.halfMoves = this.halfMoves;
         memento.moves = this.moves;
     }
@@ -651,7 +731,8 @@ public class PositionImpl implements Position
         this.k = memento.k;
         this.q = memento.q;
         this.possibleEnPassantField = memento.possibleEnPassantField;
-        this.desk = memento.desk;
+        //desk is instance of outter class
+        desk.rollBack();
         this.halfMoves = memento.halfMoves;
         this.moves = memento.moves;
         memento = null;

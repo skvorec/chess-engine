@@ -3,6 +3,7 @@ package org.chessdiagram.engine;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import org.chessdiagram.engine.desk.DeskDataHelper;
 import static org.chessdiagram.engine.desk.MoveVectorImpl.*;
 import org.testng.Assert;
@@ -13,6 +14,9 @@ import org.testng.annotations.Test;
  */
 public class PositionTest
 {
+    private static final PositionFactory POSITION_FACTORY = new PositionFactory();
+
+
     private PositionImpl getConfiguredPosition()
     {
         PositionImpl position = new PositionImpl(new DeskDataHelper().getConfiguredDesk());
@@ -41,7 +45,7 @@ public class PositionTest
     @Test
     public void addIfEmptyOrAnotherColor()
     {
-        List<Move> result = new ArrayList<Move>();
+        List<Move> result = new ArrayList<>();
         PositionImpl position = getConfiguredPosition();
 
         position.addIfEmptyOrAnotherColor("B2", NORTH.plus(NORTH).plus(NORTH).plus(NORTH).plus(EAST), result);
@@ -57,7 +61,7 @@ public class PositionTest
     public void canMoveAlongVector()
     {
         PositionImpl position = getConfiguredPosition();
-        List<MoveImpl> squares = position.canMoveAlongVector("A2", NORTH);
+        List<Move> squares = position.canMoveAlongVector("A2", NORTH);
         Assert.assertEquals(squares, Arrays.asList(
                 new MoveImpl("A2", "A3"), new MoveImpl("A2", "A4"), new MoveImpl("A2", "A5"), new MoveImpl("A2", "A6"), new MoveImpl("A2", "A7"), new MoveImpl("A2", "A8")));
         squares = position.canMoveAlongVector("D8", SOUTH);
@@ -71,26 +75,31 @@ public class PositionTest
 
 
     @Test
-    public void getLegalMovesKingOnLastLine()
+    public void getLegalMovesHashKingOnLastLine()
     {
-        Position position = new PositionFactory().fromFen("4k3/7R/8/1R6/3K4/8/8/8/ b ---- - 30 30");
+        Position position = POSITION_FACTORY.fromFen("4k3/7R/8/1R6/3K4/8/8/8 b ---- - 30 30");
 
-        Assert.assertEquals(position.getLegalMoves(),
-                Arrays.asList(MoveImpl.fromString("E8-F8"), MoveImpl.fromString("E8-D8")));
+        final Map<Move, Position> legalMovesHash = position.getLegalMovesHash();
+        Assert.assertEquals(legalMovesHash.size(), 2);
+        Assert.assertEquals(
+                legalMovesHash.get(MoveImpl.fromString("E8-F8")).toFen(), "5k2/7R/8/1R6/3K4/8/8/8 w ---- - 31 31");
+        Assert.assertEquals(
+                legalMovesHash.get(MoveImpl.fromString("E8-D8")).toFen(), "3k4/7R/8/1R6/3K4/8/8/8 w ---- - 31 31");
     }
 
 
     @Test
-    public void getLegalMovesNotOnlyKingMovesShouldBe()
+    public void getLegalMovesHashNotOnlyKingMovesShouldBe()
     {
         PositionImpl position = (PositionImpl) new PositionFactory().fromFen("8/2r5/5k2/8/8/4N3/4Kb2/8 w ---- - 30 30");
+        System.out.println(position.display());
+        Map<Move, Position> legalMoves = position.getLegalMovesHash();
 
-        final List<Move> legalMoves = position.getLegalMoves();
-
-        Assert.assertTrue(legalMoves.contains(MoveImpl.fromString("E3-D5")));
-        Assert.assertTrue(legalMoves.contains(MoveImpl.fromString("E2-F2")));
-        Assert.assertFalse(legalMoves.contains(MoveImpl.fromString("E2-E1")));
+        Assert.assertTrue(legalMoves.keySet().contains(MoveImpl.fromString("E3-D5")));
+        Assert.assertTrue(legalMoves.keySet().contains(MoveImpl.fromString("E2-F2")));
+        Assert.assertFalse(legalMoves.keySet().contains(MoveImpl.fromString("E2-E1")));
         Assert.assertEquals(legalMoves.size(), 14);
+
     }
 
 
@@ -99,6 +108,20 @@ public class PositionTest
     {
         PositionImpl position = (PositionImpl) new PositionFactory().fromFen("8/2r5/5k2/3N4/8/8/4Kb2/8 w ---- - 30 30");
         Assert.assertFalse(position.isAttacked(false, "E2"));
+
+        position = (PositionImpl) new PositionFactory().fromFen("rnbk1bnr/pp1pp1pp/8/2p1Np2/P3P3/1PNB4/2PP1P1K/R1BQ2R1 b ---- - 0 1");
+        System.out.println(position.display());
+        Assert.assertFalse(position.isAttacked(false, "H2"));
+    }
+
+
+    @Test
+    public void attackAlongVector()
+    {
+        PositionImpl position = (PositionImpl) new PositionFactory().fromFen(
+                "rnbk1bnr/pp1pp1pp/8/2p1Np2/P3P3/1PNB4/2PP1P1K/R1BQ2R1 b ---- - 0 1");
+        Assert.assertNull(position.attackAlongVector("H8", SOUTH));
+        Assert.assertEquals(position.attackAlongVector("G1", NORTH), "G7");
     }
 
 

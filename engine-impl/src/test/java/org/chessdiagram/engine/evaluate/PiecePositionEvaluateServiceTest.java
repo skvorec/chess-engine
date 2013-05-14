@@ -12,7 +12,7 @@ public class PiecePositionEvaluateServiceTest
     public void tableForBlack()
     {
         PiecePositionEvaluateService service = new PiecePositionEvaluateService();
-        int[][] pawnsForBlack = service.tableForBlack(service.pawn_weight);
+        int[][] pawnsForBlack = service.tableForBlack(service.pawnWeight);
         int[][] expectedArray = new int[][]{
             {0, 0, 0, 0, 0, 0, 0, 0},
             {-6, -4, 1, -24, -24, 1, -4, -6},
@@ -35,7 +35,7 @@ public class PiecePositionEvaluateServiceTest
             {0, 0, 0, 0, 0, 0, 0, 0}
         };
 
-        Assert.assertEquals(initialArray, service.pawn_weight);
+        Assert.assertEquals(initialArray, service.pawnWeight);
         Assert.assertEquals(expectedArray, pawnsForBlack);
     }
 

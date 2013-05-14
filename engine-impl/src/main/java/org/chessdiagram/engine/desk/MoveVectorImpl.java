@@ -3,7 +3,7 @@ package org.chessdiagram.engine.desk;
 /**
  *
  */
-public class MoveVectorImpl implements MoveVector
+public final class MoveVectorImpl implements MoveVector
 {
     public static final MoveVector NORTH = new MoveVectorImpl(-1, 0);
     public static final MoveVector SOUTH = new MoveVectorImpl(1, 0);

@@ -1,7 +1,5 @@
 package org.chessdiagram.engine.desk;
 
-import java.util.Arrays;
-import java.util.List;
 import org.chessdiagram.engine.EngineException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -17,63 +15,67 @@ public class DeskTest
     @Test
     public void display()
     {
-        Desk position = dataHelper.getConfiguredDesk();
-        Assert.assertEquals(position.display(),
+        Desk desk = dataHelper.getConfiguredDesk();
+        Assert.assertEquals(desk.display(),
                 "rnbqkbnr\n__p_pppp\n__p_ppp_\n________\n________\n________\nRNBQKBN_\n________\n");
-        System.out.println(position.display());
+        System.out.println(desk.display());
     }
 
 
     @Test
     public void toFen()
     {
-        Desk position = dataHelper.getConfiguredDesk();
-        Assert.assertEquals(position.toFen(), "rnbqkbnr/2p1pppp/2p1ppp1/8/8/8/RNBQKBN1/8");
+        Desk desk = dataHelper.getConfiguredDesk();
+        Assert.assertEquals(desk.toFen(), "rnbqkbnr/2p1pppp/2p1ppp1/8/8/8/RNBQKBN1/8");
     }
 
 
     @Test
     public void getPieceAt()
     {
-        Desk position = dataHelper.getConfiguredDesk();
-        Assert.assertEquals(position.getPieceAt("A1"), '_');
-        Assert.assertEquals(position.getPieceAt("B2"), 'N');
-        Assert.assertEquals(position.getPieceAt("H8"), 'r');
+        Desk desk = dataHelper.getConfiguredDesk();
+        Assert.assertEquals(desk.getPieceAt("A1"), '_');
+        Assert.assertEquals(desk.getPieceAt("B2"), 'N');
+        Assert.assertEquals(desk.getPieceAt("H8"), 'r');
     }
 
 
     @Test(expectedExceptions = {EngineException.class})
     public void getPieceAtException()
     {
-        Desk position = dataHelper.getConfiguredDesk();
-        position.getPieceAt("A9");
-    }
-
-
-    @Test
-    public void findPieceSquares()
-    {
-        Desk position = dataHelper.getConfiguredDesk();
-        List<String> squares = position.findPieceSquares('k');
-        Assert.assertEquals(squares, Arrays.asList("E8"));
-        squares = position.findPieceSquares('P');
-        Assert.assertTrue(squares.isEmpty());
-        squares = position.findPieceSquares('N');
-        Assert.assertEquals(squares, Arrays.asList("B2", "G2"));
+        Desk desk = dataHelper.getConfiguredDesk();
+        desk.getPieceAt("A9");
     }
 
 
     @Test
     public void copy()
     {
-        Desk position = dataHelper.getConfiguredDesk();
-        Desk copy = position.copy();
-        Assert.assertEquals(position.toFen(), copy.toFen());
-        position.setPieceAt("A1", 'P');
-        Assert.assertNotEquals(position.toFen(), copy.toFen());
-        copy = position.copy();
-        Assert.assertEquals(position.toFen(), copy.toFen());
+        Desk desk = dataHelper.getConfiguredDesk();
+        Desk copy = desk.copy();
+        Assert.assertEquals(desk.toFen(), copy.toFen());
+        desk.setPieceAt("A1", 'P');
+        Assert.assertNotEquals(desk.toFen(), copy.toFen());
+        copy = desk.copy();
+        Assert.assertEquals(desk.toFen(), copy.toFen());
         copy.setPieceAt("B1", 'P');
-        Assert.assertNotEquals(position.toFen(), copy.toFen());
+        Assert.assertNotEquals(desk.toFen(), copy.toFen());
+    }
+
+
+    @Test
+    public void rollBack()
+    {
+        Desk desk = dataHelper.getConfiguredDesk();
+        desk.setPieceAt("A8", 'R');
+        desk.setPieceAt("B8", 'N');
+
+        Assert.assertEquals(desk.getPieceAt("A8"), 'R');
+        Assert.assertEquals(desk.getPieceAt("B8"), 'N');
+
+        desk.rollBack();
+
+        Assert.assertEquals(desk.getPieceAt("A8"), 'r');
+        Assert.assertEquals(desk.getPieceAt("B8"), 'n');
     }
 }

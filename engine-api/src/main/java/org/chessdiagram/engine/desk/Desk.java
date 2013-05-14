@@ -1,7 +1,5 @@
 package org.chessdiagram.engine.desk;
 
-import java.util.List;
-
 /**
  *
  */
@@ -19,10 +17,14 @@ public interface Desk
     void setPieceAt(String square, char piece);
 
 
-    List<String> findPieceSquares(char piece);
-
-
     DeskIterator deskIterator(String square);
-    
+
+
     Desk copy();
+
+
+    void rollBack();
+
+
+    void cleanRollBackCache();
 }

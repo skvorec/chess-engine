@@ -11,6 +11,7 @@ public class PositionFactory
 {
     public static final char EMPTY_CELL_CHAR = '_';
     private static final char[] AVAILABLE_CHARS = "rnbkqpRNBKQP".toCharArray();
+    private static final String WRONG_CASTLES_MESSAGE = "fen is incorrect: wrong castles description ";
 
 
     public Position fromFen(String fen)
@@ -46,7 +47,7 @@ public class PositionFactory
             result.K = false;
         }
         else {
-            throw new IllegalArgumentException("fen is incorrect: wrong castles description " + castlesPart);
+            throw new IllegalArgumentException(WRONG_CASTLES_MESSAGE + castlesPart);
         }
 
         char Q = castlesPart.charAt(1);
@@ -57,7 +58,7 @@ public class PositionFactory
             result.Q = false;
         }
         else {
-            throw new IllegalArgumentException("fen is incorrect: wrong castles description " + castlesPart);
+            throw new IllegalArgumentException(WRONG_CASTLES_MESSAGE + castlesPart);
         }
 
         char k = castlesPart.charAt(2);
@@ -68,7 +69,7 @@ public class PositionFactory
             result.k = false;
         }
         else {
-            throw new IllegalArgumentException("fen is incorrect: wrong castles description " + castlesPart);
+            throw new IllegalArgumentException(WRONG_CASTLES_MESSAGE + castlesPart);
         }
 
         char q = castlesPart.charAt(3);
@@ -79,7 +80,7 @@ public class PositionFactory
             result.q = false;
         }
         else {
-            throw new IllegalArgumentException("fen is incorrect: wrong castles description " + castlesPart);
+            throw new IllegalArgumentException(WRONG_CASTLES_MESSAGE + castlesPart);
         }
 
 
