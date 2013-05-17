@@ -22,47 +22,25 @@ public class SearchService
 
     public Move findBestMove(final Position position)
     {
-        Map<Move, Position> legalMoves = position.getLegalMovesHash();
-
-        Move bestMove = legalMoves.isEmpty() ? null : legalMoves.keySet().iterator().next();
-        int bestValue = -EvaluationService.CHECKMATE_VALUE;
-
-//        System.out.println("Finding best move for position:");
-//        System.out.println(position.display());
-
-        for (Move move : legalMoves.keySet()) {
-
-            int score = -alphaBetaPruning(legalMoves.get(move),
-                    -EvaluationService.CHECKMATE_VALUE, EvaluationService.CHECKMATE_VALUE, depth);
-//            System.out.println("-score is " + score);
-            if (score > bestValue) {
-                bestValue = score;
-                bestMove = move;
-            }
-//            positionForModify = position.copy();
-        }
-        return bestMove;
+        ScoreAndMove bestResult = alphaBetaPruning(position, -EvaluationService.CHECKMATE_VALUE, EvaluationService.CHECKMATE_VALUE, depth);
+        return bestResult.move;
     }
 
 
     /**
      * The highest score for the best move
      */
-    protected int alphaBetaPruning(Position position, int alpha, int beta, int depth)
+    protected ScoreAndMove alphaBetaPruning(Position position, int alpha, int beta, int depth)
     {
-//        System.out.println("--inputting alpha beta pruning, color=" + color);
         int value;
         Map<Move, Position> legalMoves = position.getLegalMovesHash();
+        Move toReturn = null;
         for (Move move : legalMoves.keySet()) {
             Position afterMove = legalMoves.get(move);
 
-//            String color2 = position.getActivePlayer() ? "white" : "black";
-//            System.out.println("--processing move = " + move);
-//            System.out.println("--now we evaluating position with active player " + color2);
-//            System.out.println(position.display());
             ply++;
             if (depth > 0) {
-                value = -1 * alphaBetaPruning(afterMove, -beta, -alpha, depth - 1);
+                value = -alphaBetaPruning(afterMove, -beta, -alpha, depth - 1).score;
             }
             else {
                 value = evaluationService.evaluate(afterMove);
@@ -76,27 +54,36 @@ public class SearchService
 
             if (value > alpha) {
                 alpha = value;
+                toReturn = move;
             }
             if (value >= beta) {
-//                System.out.println("--returning beta, color=" + color + " score = " + beta);
-                return beta;
+                return new ScoreAndMove(beta, move);
             }
         }
 
         if (legalMoves.isEmpty()) {
-
             // if no moves, than position is checkmate or stealmate
             if (position.isCheck(position.getActivePlayer())) {
-//                System.out.println("--returning checkmate, color=" + color + " score = " + (-EvaluationService.CHECKMATE_VALUE + ply));
-                return -EvaluationService.CHECKMATE_VALUE + ply;
+                return new ScoreAndMove(-EvaluationService.CHECKMATE_VALUE + ply, null);
             }
             else {
-//                System.out.println("--returning stealmate, color=" + color + " score = " + 0);
-                return 0;
+                return new ScoreAndMove(0, null);
             }
         }
 
-//        System.out.println("--returning alpha, color=" + color + " score = " + alpha);
-        return alpha;
+        return new ScoreAndMove(alpha, toReturn);
+    }
+
+    protected static class ScoreAndMove
+    {
+        int score;
+        Move move;
+
+
+        public ScoreAndMove(int score, Move move)
+        {
+            this.score = score;
+            this.move = move;
+        }
     }
 }

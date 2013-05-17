@@ -79,7 +79,7 @@ public class DeskFXApplication extends Application
 
     private static class SubmitEventHandler implements EventHandler<ActionEvent>
     {
-        private volatile SearchService service = new SearchService(3);
+        private volatile SearchService service = new SearchService(5);
         private volatile TextField moveTextField;
         private volatile BorderPane borderpane;
         private volatile Position position;
